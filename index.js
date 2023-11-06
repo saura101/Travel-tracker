@@ -58,14 +58,34 @@ app.get("/",async (req, res) => {
 app.post("/add",async(req,res) => {
   let country = req.body.country;
   console.log(country);
+  let code;
   try {
-    let code = await db.query("SELECT country_code FROM countries WHERE country_name = $1",[country]);
+    code = await db.query("SELECT country_code FROM countries WHERE country_name = $1",[country]);
     console.log(code.rows);
-    await db.query("INSERT INTO visited_countries (country_code) VALUES ($1)",[code.rows[0].country_code]);
+    //res.redirect("/");
+    if(code.rows.length !== 0) {
+      try {
+        await db.query("INSERT INTO visited_countries (country_code) VALUES ($1)",[code.rows[0].country_code]);
+        res.redirect("/");
+      } catch(err) {
+        console.log(err);
+        res.render("index.ejs", { 
+          total : total, 
+          countries : visited_countries,
+          error : "Country has already been added, try again!!!"
+        });
+      }
+    } else {
+      res.render("index.ejs", { 
+        total : total, 
+        countries : visited_countries,
+        error : "Country does not exist, try again!!!"
+      });
+    }
   } catch(err) {
     console.log(err);
   }
-  res.redirect("/");
+  //res.redirect("/");
 });
 
 app.listen(port, () => {
