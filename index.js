@@ -21,30 +21,51 @@ db.connect();
 let visited_countries = [];
 let total = 0;
 
-db.query("SELECT country_code FROM visited_countries",(err,res) => {
-  if(err) {
-    console.error("Error executing query",err.stack);
-  } else {
-    console.log(res.rows);
-    console.log(res.rowCount);
-    let data = res.rows;
-    total = res.rowCount;
-    data.map(record => (
-      visited_countries.push(record.country_code)
-    ));
-    console.log(visited_countries);
-  }
-  db.end();
-});
+// db.query("SELECT country_code FROM visited_countries",(err,res) => {
+//   if(err) {
+//     console.error("Error executing query",err.stack);
+//   } else {
+//     console.log(res.rows);
+//     console.log(res.rowCount);
+//     let data = res.rows;
+//     total = res.rowCount;
+//     data.map(record => (
+//       visited_countries.push(record.country_code)
+//     ));
+//     console.log(visited_countries);
+//   }
+//   //db.end();
+// });
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-app.get("/",(req, res) => {
+app.get("/",async (req, res) => {
+  const result = await db.query("SELECT country_code FROM visited_countries");
+  console.log(result.rows);
+  console.log(result.rowCount);
+  total = result.rowCount;
+  result.rows.forEach((record) => {
+    visited_countries.push(record.country_code);
+  });
+  console.log(visited_countries);
   res.render("index.ejs", { 
     total : total, 
     countries : visited_countries
   });
+});
+
+app.post("/add",async(req,res) => {
+  let country = req.body.country;
+  console.log(country);
+  try {
+    let code = await db.query("SELECT country_code FROM countries WHERE country_name = $1",[country]);
+    console.log(code.rows);
+    await db.query("INSERT INTO visited_countries (country_code) VALUES ($1)",[code.rows[0].country_code]);
+  } catch(err) {
+    console.log(err);
+  }
+  res.redirect("/");
 });
 
 app.listen(port, () => {
